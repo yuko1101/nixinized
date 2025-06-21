@@ -1,20 +1,30 @@
 diff --git a/config/src/config.rs b/config/src/config.rs
-index c31d9cf..2190f8c 100644
+index c31d9cf..9150dd6 100644
 --- a/config/src/config.rs
 +++ b/config/src/config.rs
-@@ -2046,6 +2046,8 @@ pub enum DroppedFileQuoting {
+@@ -2046,6 +2046,10 @@ pub enum DroppedFileQuoting {
      Windows,
      /// Always double quote the file name
      WindowsAlwaysQuoted,
++    /// Single quote if required
++    SingleQuoted,
 +    /// Always single quote the file name
 +    AlwaysSingleQuoted,
  }
  
  impl Default for DroppedFileQuoting {
-@@ -2076,6 +2078,7 @@ impl DroppedFileQuoting {
+@@ -2076,6 +2080,15 @@ impl DroppedFileQuoting {
                  }
              }
              Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
++            Self::SingleQuoted => {
++                let chars_need_quoting = [' ', '\t', '\n', '\x0b', '\"'];
++                if s.chars().any(|c| chars_need_quoting.contains(&c)) {
++                    format!("'{}'", s)
++                } else {
++                    s.to_string()
++                }
++            }
 +            Self::AlwaysSingleQuoted => format!("'{}'", s),
          }
      }
