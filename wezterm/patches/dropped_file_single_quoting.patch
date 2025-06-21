@@ -1,0 +1,21 @@
+diff --git a/config/src/config.rs b/config/src/config.rs
+index c31d9cf..2190f8c 100644
+--- a/config/src/config.rs
++++ b/config/src/config.rs
+@@ -2046,6 +2046,8 @@ pub enum DroppedFileQuoting {
+     Windows,
+     /// Always double quote the file name
+     WindowsAlwaysQuoted,
++    /// Always single quote the file name
++    AlwaysSingleQuoted,
+ }
+ 
+ impl Default for DroppedFileQuoting {
+@@ -2076,6 +2078,7 @@ impl DroppedFileQuoting {
+                 }
+             }
+             Self::WindowsAlwaysQuoted => format!("\"{}\"", s),
++            Self::AlwaysSingleQuoted => format!("'{}'", s),
+         }
+     }
+ }
