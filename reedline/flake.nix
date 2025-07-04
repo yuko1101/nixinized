@@ -25,9 +25,10 @@
         };
       in
       {
-        packages.default = pkgs.applyPatches {
+        packages.default = pkgs.applyPatches rec {
           name = "patched-reedline";
           src = reedline;
+          version = (builtins.fromTOML (builtins.readFile "${src}/Cargo.toml")).package.version;
           patches = builtins.map (name: "${./patches}/${name}") (
             builtins.attrNames (builtins.readDir ./patches)
           );

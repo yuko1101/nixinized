@@ -43,17 +43,18 @@
           inherit src;
           hash = "sha256-0T1oXv5x0CRwgmk2Y5BOw4Pk+d6Xfg/HfTKEQS0Ocmc=";
         };
+        version = (builtins.fromTOML (builtins.readFile "${src}/Cargo.toml")).package.version;
       in
       {
         packages.nushell = pkgs.nushell.overrideAttrs (oldAttrs: {
-          inherit src cargoDeps;
+          inherit src cargoDeps version;
           cargoBuildFlags = (oldAttrs.cargoBuildFlags or [ ]) ++ [
             "--features"
             "system-clipboard"
           ];
         });
         packages.nu_plugin_polars = pkgs.nushellPlugins.polars.overrideAttrs (oldAttrs: {
-          inherit src cargoDeps;
+          inherit src cargoDeps version;
         });
       }
     );
