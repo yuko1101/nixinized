@@ -1,0 +1,42 @@
+diff --git a/src/engine.rs b/src/engine.rs
+index b5f6958..fb2f002 100644
+--- a/src/engine.rs
++++ b/src/engine.rs
+@@ -851,6 +851,18 @@ impl Reedline {
+                 }
+             }
+             ReedlineEvent::CtrlC => {
++                if self
++                    .editor
++                    .get_selection()
++                    .is_some_and(|(start, end)| start < end)
++                {
++                    #[cfg(feature = "system_clipboard")]
++                    self.editor
++                        .run_edit_command(&EditCommand::CopySelectionSystem);
++                    #[cfg(not(feature = "system_clipboard"))]
++                    self.editor.run_edit_command(&EditCommand::CopySelection);
++                    return Ok(EventStatus::Handled);
++                }
+                 self.input_mode = InputMode::Regular;
+                 Ok(EventStatus::Exits(Signal::CtrlC))
+             }
+@@ -1083,6 +1095,18 @@ impl Reedline {
+                 }
+             }
+             ReedlineEvent::CtrlC => {
++                if self
++                    .editor
++                    .get_selection()
++                    .is_some_and(|(start, end)| start < end)
++                {
++                    #[cfg(feature = "system_clipboard")]
++                    self.editor
++                        .run_edit_command(&EditCommand::CopySelectionSystem);
++                    #[cfg(not(feature = "system_clipboard"))]
++                    self.editor.run_edit_command(&EditCommand::CopySelection);
++                    return Ok(EventStatus::Handled);
++                }
+                 self.deactivate_menus();
+                 self.run_edit_commands(&[EditCommand::Clear]);
+                 self.editor.reset_undo_stack();
