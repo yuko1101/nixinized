@@ -39,18 +39,21 @@
           mkdir -p $out/crates/reedline
           cp -r ${reedline.packages.${system}.default}/* $out/crates/reedline
         '';
+        cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
+          inherit src;
+          hash = "sha256-0T1oXv5x0CRwgmk2Y5BOw4Pk+d6Xfg/HfTKEQS0Ocmc=";
+        };
       in
       {
         packages.nushell = pkgs.nushell.overrideAttrs (oldAttrs: {
-          inherit src;
-          cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
-            inherit src;
-            hash = "sha256-0T1oXv5x0CRwgmk2Y5BOw4Pk+d6Xfg/HfTKEQS0Ocmc=";
-          };
+          inherit src cargoDeps;
           cargoBuildFlags = (oldAttrs.cargoBuildFlags or [ ]) ++ [
             "--features"
             "system-clipboard"
           ];
+        });
+        packages.nu_plugin_polars = pkgs.nushellPlugins.polars.overrideAttrs (oldAttrs: {
+          inherit src cargoDeps;
         });
       }
     );
