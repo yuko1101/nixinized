@@ -1,16 +1,16 @@
 diff --git a/crates/nu-command/src/debug/ast_command.rs b/crates/nu-command/src/debug/ast_command.rs
 new file mode 100644
-index 0000000..cf341a8
+index 0000000..53ab517
 --- /dev/null
 +++ b/crates/nu-command/src/debug/ast_command.rs
-@@ -0,0 +1,190 @@
+@@ -0,0 +1,239 @@
 +use std::collections::HashMap;
 +
 +use nu_engine::command_prelude::*;
 +use nu_parser::parse;
 +use nu_protocol::{
 +    Id, LabeledError,
-+    ast::{self, Argument, Block, Expr},
++    ast::{self, Argument, Block, Expr, Expression},
 +    engine::StateWorkingSet,
 +    record,
 +};
@@ -90,11 +90,7 @@ index 0000000..cf341a8
 +
 +        let positional_args: Vec<Value> = positional_args
 +            .into_iter()
-+            .map(|e| {
-+                let str =
-+                    String::from_utf8_lossy(working_set.get_span_contents(e.span)).to_string();
-+                Value::string(str, pipeline.span)
-+            })
++            .map(|e| Value::record(parse_expr(&working_set, e, pipeline.span), pipeline.span))
 +            .collect();
 +
 +        let named_args: Record = named_args
@@ -103,11 +99,8 @@ index 0000000..cf341a8
 +                let Some(v) = v else {
 +                    return (k, Value::nothing(pipeline.span));
 +                };
-+
-+                let str =
-+                    String::from_utf8_lossy(working_set.get_span_contents(v.span)).to_string();
-+
-+                (k, Value::string(str, pipeline.span))
++                let record = parse_expr(&working_set, v, pipeline.span);
++                (k, Value::record(record, pipeline.span))
 +            })
 +            .fold(Record::new(), |mut acc, (k, v)| {
 +                acc.insert(k, v);
@@ -182,6 +175,62 @@ index 0000000..cf341a8
 +            .rev()
 +            .find_map(|e| find_sub_expression(&e.expr, working_set)),
 +        _ => None,
++    }
++}
++
++fn parse_expr(working_set: &StateWorkingSet, expr: &Expression, span: Span) -> Record {
++    match expr.expr {
++        Expr::RawString(ref raw_string) => record! {
++            "value" => Value::string(raw_string, span),
++            "type" => Value::string("raw_string", span),
++            "kind" => Value::string("string", span),
++        },
++        Expr::String(ref string) => record! {
++            "value" => Value::string(string, span),
++            "type" => Value::string("string", span),
++            "kind" => Value::string("string", span),
++        },
++        Expr::Int(int) => record! {
++            "value" => Value::int(int, span),
++            "type" => Value::string("int", span),
++            "kind" => Value::string("number", span),
++        },
++        Expr::Float(float) => record! {
++            "value" => Value::float(float, span),
++            "type" => Value::string("float", span),
++            "kind" => Value::string("number", span),
++        },
++        Expr::Directory(ref path, quoted) => record! {
++            "value" => Value::record(
++                record! {
++                    "path" => Value::string(path, span),
++                    "quoted" => Value::bool(quoted, span),
++                },
++                span,
++            ),
++            "type" => Value::string("directory", span),
++            "kind" => Value::string("path", span),
++        },
++        Expr::Filepath(ref path, quoted) => record! {
++            "value" => Value::record(
++                record! {
++                    "path" => Value::string(path, span),
++                    "quoted" => Value::bool(quoted, span),
++                },
++                span,
++            ),
++            "type" => Value::string("filepath", span),
++            "kind" => Value::string("path", span),
++        },
++        // TODO: support more types of expressions (e.g. glob patterns, cell path, and variables)
++        _ => {
++            let contents = working_set.get_span_contents(expr.span);
++            let str = String::from_utf8_lossy(contents).to_string();
++            record! {
++                "value" => Value::string(str, span),
++                "type" => Value::string("expression", span),
++            }
++        }
 +    }
 +}
 +
