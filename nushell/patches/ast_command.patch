@@ -1,9 +1,9 @@
 diff --git a/crates/nu-command/src/debug/ast_command.rs b/crates/nu-command/src/debug/ast_command.rs
 new file mode 100644
-index 0000000..3beed84
+index 0000000..c00a4fa
 --- /dev/null
 +++ b/crates/nu-command/src/debug/ast_command.rs
-@@ -0,0 +1,270 @@
+@@ -0,0 +1,262 @@
 +use std::collections::HashMap;
 +
 +use nu_engine::command_prelude::*;
@@ -53,35 +53,21 @@ index 0000000..3beed84
 +        let pipeline: Spanned<String> = call.req(engine_state, stack, 0)?;
 +
 +        let mut working_set = StateWorkingSet::new(engine_state);
-+        let placeholder = "%placeholder%";
-+        let test_parsed_block = parse(
-+            &mut working_set,
-+            None,
-+            format!("{}{}", pipeline.item, placeholder).as_bytes(),
-+            false,
-+        );
 +        let parsed_block = parse(&mut working_set, None, pipeline.item.as_bytes(), false);
 +        let error_output = working_set.parse_errors.first();
 +
-+        let mut depth_counter = usize::MAX;
-+        let test_target_call =
-+            find_target_call(&test_parsed_block, &working_set, &mut depth_counter);
-+        let need_test = test_target_call.is_none_or(|call| {
-+            call.arguments.last().is_some_and(|arg| {
-+                let Argument::Positional(expr) = arg else {
-+                    return false;
-+                };
-+
-+                let Expr::String(str) = &expr.expr else {
-+                    return false;
-+                };
-+
-+                str == placeholder
-+            })
-+        });
-+        let mut depth_counter = usize::MAX - if need_test { depth_counter } else { 0 };
-+        let target_call = find_target_call(&parsed_block, &working_set, &mut depth_counter)
++        let cursor = parsed_block
++            .span
 +            .ok_or_else(|| {
++                ShellError::LabeledError(Box::new(
++                    LabeledError::new("No span found for the pipeline")
++                        .with_label("Expected a valid pipeline", pipeline.span),
++                ))
++            })?
++            .end
++            - 1;
++        let target_call =
++            find_target_call(&parsed_block, &working_set, cursor).ok_or_else(|| {
 +                ShellError::LabeledError(Box::new(
 +                    LabeledError::new("No command call found in the pipeline")
 +                        .with_label("Expected a command", pipeline.span),
@@ -154,17 +140,18 @@ index 0000000..3beed84
 +fn find_target_call<'a>(
 +    parsed_block: &'a Block,
 +    working_set: &'a StateWorkingSet,
-+    depth_counter: &mut usize,
++    cursor: usize,
 +) -> Option<&'a Box<ast::Call>> {
-+    if *depth_counter == 0 {
-+        return None;
-+    }
-+    *depth_counter -= 1;
 +    parsed_block
 +        .pipelines
 +        .last()
 +        .and_then(|p| p.elements.last())
 +        .and_then(|e| {
++            let span = e.expr.span;
++            if cursor < span.start || span.end <= cursor {
++                return None;
++            }
++
 +            if let Expr::Call(call) = &e.expr.expr {
 +                // Search for a sub-expression that is a call
 +                let sub_call = call.arguments.iter().last().and_then(|arg: &Argument| {
@@ -178,12 +165,12 @@ index 0000000..3beed84
 +                        }
 +                    };
 +
-+                    let Some(sub_expr) = find_sub_expression(&expr.expr, working_set) else {
++                    let Some(sub_expr) = find_sub_expression(&expr, working_set, cursor) else {
 +                        return None;
 +                    };
 +
 +                    let sub_expr_block = working_set.get_block(sub_expr.clone());
-+                    return find_target_call(sub_expr_block, working_set, depth_counter);
++                    return find_target_call(sub_expr_block, working_set, cursor);
 +                });
 +
 +                sub_call.or(Some(call))
@@ -194,16 +181,21 @@ index 0000000..3beed84
 +}
 +
 +fn find_sub_expression<'a>(
-+    expr: &'a Expr,
++    expr: &'a Expression,
 +    working_set: &'a StateWorkingSet,
++    cursor: usize,
 +) -> Option<&'a Id<nu_protocol::marker::Block>> {
-+    match expr {
++    let span = expr.span;
++    if cursor < span.start || span.end <= cursor {
++        return None;
++    }
++    match &expr.expr {
 +        Expr::Subexpression(sub_expr) => Some(sub_expr),
-+        Expr::FullCellPath(expr) => find_sub_expression(&expr.head.expr, working_set),
++        Expr::FullCellPath(expr) => find_sub_expression(&expr.head, working_set, cursor),
 +        Expr::StringInterpolation(expr_vec) => expr_vec
 +            .iter()
 +            .last()
-+            .and_then(|e| find_sub_expression(&e.expr, working_set)),
++            .and_then(|e| find_sub_expression(e, working_set, cursor)),
 +        _ => None,
 +    }
 +}
