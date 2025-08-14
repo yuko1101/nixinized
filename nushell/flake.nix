@@ -7,7 +7,7 @@
       url = "github:nushell/nushell";
       flake = false;
     };
-    reedline.url = "../reedline";
+    reedline.url = "github:yuko1101/nixinized?dir=reedline";
   };
 
   outputs =

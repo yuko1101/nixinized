@@ -91,14 +91,20 @@
         "reedline": "reedline_2"
       },
       "locked": {
-        "path": "../reedline",
-        "type": "path"
+        "dir": "reedline",
+        "lastModified": 1755142741,
+        "narHash": "sha256-Q74LsnTaLrb02Fh+dkuI2/V0jszk57XyhDHhpDIS7bk=",
+        "owner": "yuko1101",
+        "repo": "nixinized",
+        "rev": "8a18f846b131e569a32b96a6b7e1f624940102b6",
+        "type": "github"
       },
       "original": {
-        "path": "../reedline",
-        "type": "path"
-      },
-      "parent": []
+        "dir": "reedline",
+        "owner": "yuko1101",
+        "repo": "nixinized",
+        "type": "github"
+      }
     },
     "reedline_2": {
       "flake": false,
