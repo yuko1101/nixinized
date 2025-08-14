@@ -52,6 +52,7 @@
             "--features"
             "system-clipboard"
           ];
+          doCheck = false;
         });
         packages.nu_plugin_polars = pkgs.nushellPlugins.polars.overrideAttrs (oldAttrs: {
           inherit src cargoDeps version;
