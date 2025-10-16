@@ -10,18 +10,16 @@
     reedline.url = "github:yuko1101/nixinized?dir=reedline";
   };
 
-  outputs =
-    {
-      self,
-      nixpkgs,
-      flake-utils,
-      nushell,
-      reedline,
-      ...
-    }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    nushell,
+    reedline,
+    ...
+  }:
     flake-utils.lib.eachDefaultSystem (
-      system:
-      let
+      system: let
         pkgs = import nixpkgs {
           inherit system;
         };
@@ -32,7 +30,7 @@
             builtins.attrNames (builtins.readDir ./patches)
           );
         };
-        src = pkgs.runCommand "nushell-src" { } ''
+        src = pkgs.runCommand "nushell-src" {} ''
           mkdir -p $out
           cp -r ${patchedNushell}/* $out
           chmod +w $out/crates
@@ -41,17 +39,18 @@
         '';
         cargoDeps = pkgs.rustPlatform.fetchCargoVendor {
           inherit src;
-          hash = "sha256-0T1oXv5x0CRwgmk2Y5BOw4Pk+d6Xfg/HfTKEQS0Ocmc=";
+          hash = "sha256-Ze4HjgXCqfmZbQfqigiL7p9LlZ5wvjZs6DJLaIZsz54=";
         };
         version = (builtins.fromTOML (builtins.readFile "${src}/Cargo.toml")).package.version;
-      in
-      {
+      in {
         packages.nushell = pkgs.nushell.overrideAttrs (oldAttrs: {
           inherit src cargoDeps version;
-          cargoBuildFlags = (oldAttrs.cargoBuildFlags or [ ]) ++ [
-            "--features"
-            "system-clipboard"
-          ];
+          cargoBuildFlags =
+            (oldAttrs.cargoBuildFlags or [])
+            ++ [
+              "--features"
+              "system-clipboard"
+            ];
           doCheck = false;
         });
         packages.nu_plugin_polars = pkgs.nushellPlugins.polars.overrideAttrs (oldAttrs: {

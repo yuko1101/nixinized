@@ -2,11 +2,12 @@ diff --git a/Cargo.lock b/Cargo.lock
 index 9062d0b..46757a9 100644
 --- a/Cargo.lock
 +++ b/Cargo.lock
-@@ -5956,7 +5956,6 @@ dependencies = [
+@@ -5956,8 +5956,6 @@ dependencies = [
  [[package]]
  name = "reedline"
- version = "0.40.0"
--source = "git+https://github.com/nushell/reedline?branch=main#e4221b954ccc04940f3ed505ed4984d92fbe1f4c"
+ version = "0.43.0"
+-source = "registry+https://github.com/rust-lang/crates.io-index"
+-checksum = "b0fcf9f5225169f49622af4027b6d775cf9b6313f9eba16ba9e5ebd9d319a1f0"
  dependencies = [
   "arboard",
   "chrono",
@@ -18,8 +19,8 @@ index c148cd9..c365727 100644
  # To use a development version of a dependency please use a global override here
  # changing versions in each sub-crate of the workspace is tedious
  [patch.crates-io]
--reedline = { git = "https://github.com/nushell/reedline", branch = "main" }
+-# reedline = { git = "https://github.com/nushell/reedline", branch = "main" }
 +reedline = { path = "./crates/reedline" }
- # nu-ansi-term = {git = "https://github.com/nushell/nu-ansi-term.git", branch = "main"}
+ # nu-ansi-term = { git = "https://github.com/nushell/nu-ansi-term.git", branch = "main" }
  
  # Run all benchmarks with `cargo bench`
