@@ -1,9 +1,9 @@
 diff --git a/crates/nu-command/src/debug/ast_command.rs b/crates/nu-command/src/debug/ast_command.rs
 new file mode 100644
-index 0000000..c00a4fa
+index 0000000..c0d27f5
 --- /dev/null
 +++ b/crates/nu-command/src/debug/ast_command.rs
-@@ -0,0 +1,262 @@
+@@ -0,0 +1,257 @@
 +use std::collections::HashMap;
 +
 +use nu_engine::command_prelude::*;
@@ -106,12 +106,16 @@ index 0000000..c00a4fa
 +
 +        let named_args: Record = named_args
 +            .into_iter()
-+            .map(|(k, v)| {
++            .filter_map(|(k, v)| {
++                // keys can be empty in some cases (e.g. missing flag argument; "reduce -f")
++                if k.is_empty() {
++                    return None;
++                }
 +                let Some(v) = v else {
-+                    return (k, Value::nothing(pipeline.span));
++                    return Some((k, Value::nothing(pipeline.span)));
 +                };
 +                let record = parse_expr(&working_set, v, pipeline.span);
-+                (k, Value::record(record, pipeline.span))
++                Some((k, Value::record(record, pipeline.span)))
 +            })
 +            .fold(Record::new(), |mut acc, (k, v)| {
 +                acc.insert(k, v);
@@ -147,11 +151,6 @@ index 0000000..c00a4fa
 +        .last()
 +        .and_then(|p| p.elements.last())
 +        .and_then(|e| {
-+            let span = e.expr.span;
-+            if cursor < span.start || span.end <= cursor {
-+                return None;
-+            }
-+
 +            if let Expr::Call(call) = &e.expr.expr {
 +                // Search for a sub-expression that is a call
 +                let sub_call = call.arguments.iter().last().and_then(|arg: &Argument| {
@@ -185,10 +184,6 @@ index 0000000..c00a4fa
 +    working_set: &'a StateWorkingSet,
 +    cursor: usize,
 +) -> Option<&'a Id<nu_protocol::marker::Block>> {
-+    let span = expr.span;
-+    if cursor < span.start || span.end <= cursor {
-+        return None;
-+    }
 +    match &expr.expr {
 +        Expr::Subexpression(sub_expr) => Some(sub_expr),
 +        Expr::FullCellPath(expr) => find_sub_expression(&expr.head, working_set, cursor),
@@ -285,7 +280,7 @@ index be68c8c..2432a4d 100644
  pub use env::DebugEnv;
  pub use experimental_options::DebugExperimentalOptions;
 diff --git a/crates/nu-command/src/default_context.rs b/crates/nu-command/src/default_context.rs
-index 4d7ed8c..8b432ea 100644
+index 2816922..3460f1b 100644
 --- a/crates/nu-command/src/default_context.rs
 +++ b/crates/nu-command/src/default_context.rs
 @@ -151,6 +151,7 @@ pub fn add_shell_command_context(mut engine_state: EngineState) -> EngineState {
