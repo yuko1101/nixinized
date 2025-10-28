@@ -1,9 +1,9 @@
 diff --git a/crates/nu-command/src/debug/ast_command.rs b/crates/nu-command/src/debug/ast_command.rs
 new file mode 100644
-index 0000000..c0d27f5
+index 0000000..815a85a
 --- /dev/null
 +++ b/crates/nu-command/src/debug/ast_command.rs
-@@ -0,0 +1,257 @@
+@@ -0,0 +1,271 @@
 +use std::collections::HashMap;
 +
 +use nu_engine::command_prelude::*;
@@ -146,37 +146,42 @@ index 0000000..c0d27f5
 +    working_set: &'a StateWorkingSet,
 +    cursor: usize,
 +) -> Option<&'a Box<ast::Call>> {
-+    parsed_block
++    let last_element = parsed_block
 +        .pipelines
 +        .last()
-+        .and_then(|p| p.elements.last())
-+        .and_then(|e| {
-+            if let Expr::Call(call) = &e.expr.expr {
-+                // Search for a sub-expression that is a call
-+                let sub_call = call.arguments.iter().last().and_then(|arg: &Argument| {
-+                    let expr = match arg {
-+                        Argument::Positional(expr)
-+                        | Argument::Named((_, _, Some(expr)))
-+                        | Argument::Unknown(expr)
-+                        | Argument::Spread(expr) => expr,
-+                        _ => {
-+                            return None;
-+                        }
-+                    };
++        .and_then(|p| p.elements.last());
 +
-+                    let Some(sub_expr) = find_sub_expression(&expr, working_set, cursor) else {
-+                        return None;
-+                    };
++    let Some(last_element) = last_element else {
++        return None;
++    };
 +
-+                    let sub_expr_block = working_set.get_block(sub_expr.clone());
-+                    return find_target_call(sub_expr_block, working_set, cursor);
-+                });
-+
-+                sub_call.or(Some(call))
-+            } else {
-+                None
++    let Expr::Call(call) = &last_element.expr.expr else {
++        return None;
++    };
++    if !is_cursor_in_call(call, cursor, working_set) {
++        return None;
++    }
++    // Search for a sub-expression that is a call
++    let sub_call = call.arguments.iter().last().and_then(|arg: &Argument| {
++        let expr = match arg {
++            Argument::Positional(expr)
++            | Argument::Named((_, _, Some(expr)))
++            | Argument::Unknown(expr)
++            | Argument::Spread(expr) => expr,
++            _ => {
++                return None;
 +            }
-+        })
++        };
++
++        let Some(sub_expr) = find_sub_expression(&expr, working_set, cursor) else {
++            return None;
++        };
++
++        let sub_expr_block = working_set.get_block(sub_expr.clone());
++        return find_target_call(sub_expr_block, working_set, cursor);
++    });
++
++    sub_call.or(Some(call))
 +}
 +
 +fn find_sub_expression<'a>(
@@ -250,6 +255,15 @@ index 0000000..c0d27f5
 +            }
 +        }
 +    }
++}
++
++fn is_cursor_in_call(call: &ast::Call, cursor: usize, working_set: &StateWorkingSet) -> bool {
++    let span = call.span();
++    return span.contains(cursor)
++        || working_set
++            .get_span_contents(Span::new(span.end, cursor + 1))
++            .iter()
++            .all(|b| b.is_ascii_whitespace());
 +}
 +
 +#[cfg(test)]
