@@ -37,11 +37,11 @@
     "reedline": {
       "flake": false,
       "locked": {
-        "lastModified": 1760559229,
-        "narHash": "sha256-COlgcI7hmjkVFqgBDvLLqp5iORsXNGb9yWUOa/KQT9I=",
+        "lastModified": 1774008770,
+        "narHash": "sha256-6EjZd9Z1rxAMnklsuBfbUUduJWSuMkJcXosI3ldGqec=",
         "owner": "nushell",
         "repo": "reedline",
-        "rev": "0bb9acad41e659866fc567e7f638ece881489d6c",
+        "rev": "1e017e8f974de22d8ddd8ae9c17e62ba953ebc46",
         "type": "github"
       },
       "original": {
